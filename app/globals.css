@@ -111,6 +111,7 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 1px rgba(255,255,255,.16), 0 20px 38px rgba(0,0,0,.32);
   font-family: Georgia, serif;
   font-weight: 900;
+  overflow: hidden;
 }
 .brandText small { display: block; color: var(--color-gold); font-size: 11px; letter-spacing: .22em; text-transform: uppercase; }
 .brandText strong { display: block; font-size: 17px; color: var(--color-text); }
@@ -265,8 +266,10 @@ tbody tr:hover td { background: rgba(201,164,92,.07); }
 .swatch { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); }
 
 .formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.formGrid.single { grid-template-columns: 1fr; }
 .formGrid label { display: grid; gap: 7px; color: var(--color-muted); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-.formGrid select {
+.formGrid select,
+.formGrid input {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -275,7 +278,18 @@ tbody tr:hover td { background: rgba(201,164,92,.07); }
   color: var(--color-text);
   outline: none;
 }
-.formGrid select:focus { border-color: var(--color-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 22%, transparent); }
+.formGrid input[type='file'] { padding: 10px 12px; }
+.formGrid input::file-selector-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  margin-right: 12px;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-accent));
+  color: #08110d;
+  font-weight: 900;
+}
+.formGrid select:focus,
+.formGrid input:focus { border-color: var(--color-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 22%, transparent); }
 .brandPreview {
   margin-top: 18px;
   display: flex;
@@ -285,6 +299,15 @@ tbody tr:hover td { background: rgba(201,164,92,.07); }
   border-radius: 24px;
   border: 1px solid var(--color-border);
   background: var(--color-soft);
+}
+.brandLogoPreview {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: rgba(255,255,255,.08);
+  padding: 6px;
 }
 
 .loginPage { min-height: 100vh; display: grid; place-items: center; padding: 28px; }
