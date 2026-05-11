@@ -19,6 +19,9 @@ import { useTheme } from '@/components/ThemeProvider';
 export function ThemeSwitcher() {
   const {
     brandConfig,
+    setBrandName,
+    setProductName,
+    setLogoDataUrl,
     setThemeId,
     setPrimaryColorId,
     setAccentColorId,
@@ -28,21 +31,54 @@ export function ThemeSwitcher() {
     resetBrandConfig
   } = useTheme();
 
+  const handleLogoUpload = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoDataUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="grid two">
       <div className="card compact">
-        <p className="kicker">Hard-coded brand base</p>
-        <h3 className="cardTitle">Vaycora logo stays default</h3>
+        <p className="kicker">Brand identity</p>
+        <h3 className="cardTitle">Name and logo controls</h3>
         <p className="muted">
-          The Vaycora mark and base identity stay hard-coded. Customer color direction changes through dropdowns.
+          Vaycora remains the default. This room lets an admin preview customer-facing brand text and logo before we wire Supabase storage.
         </p>
+
+        <div className="formGrid single" style={{ marginTop: 16 }}>
+          <label>
+            <span>Brand name</span>
+            <input value={brandConfig.brandName} onChange={(event) => setBrandName(event.target.value)} placeholder="Vaycora" />
+          </label>
+          <label>
+            <span>Product name</span>
+            <input value={brandConfig.productName} onChange={(event) => setProductName(event.target.value)} placeholder="Asset Operations" />
+          </label>
+          <label>
+            <span>Upload logo</span>
+            <input type="file" accept="image/*" onChange={(event) => handleLogoUpload(event.target.files?.[0])} />
+          </label>
+        </div>
+
         <div className="brandPreview">
-          <span className="brandIcon">VM</span>
+          {brandConfig.logoDataUrl ? (
+            <img className="brandLogoPreview" src={brandConfig.logoDataUrl} alt={`${brandConfig.brandName} logo preview`} />
+          ) : (
+            <span className="brandIcon">VM</span>
+          )}
           <span className="brandText">
-            <small>Vaycora</small>
-            <strong>Asset Operations</strong>
+            <small>{brandConfig.brandName || 'Vaycora'}</small>
+            <strong>{brandConfig.productName || 'Asset Operations'}</strong>
           </span>
         </div>
+
+        {brandConfig.logoDataUrl && (
+          <div style={{ marginTop: 12 }}>
+            <button className="btn secondary" type="button" onClick={() => setLogoDataUrl(null)}>Remove Uploaded Logo</button>
+          </div>
+        )}
       </div>
 
       <div className="card compact">
