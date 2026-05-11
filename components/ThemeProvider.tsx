@@ -1,35 +1,78 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { defaultThemeId, themePresets, type ThemeId } from '@/lib/theme';
+import {
+  buildCssVariables,
+  defaultBrandConfig,
+  type AccentColorId,
+  type BackgroundStyleId,
+  type BrandConfig,
+  type PrimaryColorId,
+  type SurfaceStyleId,
+  type TextStyleId,
+  type ThemeId
+} from '@/lib/theme';
 
 type ThemeContextValue = {
+  brandConfig: BrandConfig;
   themeId: ThemeId;
   setThemeId: (themeId: ThemeId) => void;
+  setPrimaryColorId: (primaryColorId: PrimaryColorId) => void;
+  setAccentColorId: (accentColorId: AccentColorId) => void;
+  setBackgroundStyleId: (backgroundStyleId: BackgroundStyleId) => void;
+  setSurfaceStyleId: (surfaceStyleId: SurfaceStyleId) => void;
+  setTextStyleId: (textStyleId: TextStyleId) => void;
+  resetBrandConfig: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function applyBrandConfig(config: BrandConfig) {
+  document.documentElement.dataset.theme = config.themeId;
+  const variables = buildCssVariables(config);
+  Object.entries(variables).forEach(([key, value]) => {
+    document.documentElement.style.setProperty(key, value);
+  });
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeId, setThemeIdState] = useState<ThemeId>(defaultThemeId);
+  const [brandConfig, setBrandConfigState] = useState<BrandConfig>(defaultBrandConfig);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem('vaycora-theme') as ThemeId | null;
-    if (stored && themePresets.some((theme) => theme.id === stored)) {
-      setThemeIdState(stored);
-      document.documentElement.dataset.theme = stored;
-    } else {
-      document.documentElement.dataset.theme = defaultThemeId;
+    const stored = window.localStorage.getItem('vaycora-brand-config');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as BrandConfig;
+        setBrandConfigState(parsed);
+        applyBrandConfig(parsed);
+        return;
+      } catch {
+        window.localStorage.removeItem('vaycora-brand-config');
+      }
     }
+    applyBrandConfig(defaultBrandConfig);
   }, []);
 
-  const setThemeId = (nextThemeId: ThemeId) => {
-    setThemeIdState(nextThemeId);
-    document.documentElement.dataset.theme = nextThemeId;
-    window.localStorage.setItem('vaycora-theme', nextThemeId);
+  const saveBrandConfig = (nextConfig: BrandConfig) => {
+    setBrandConfigState(nextConfig);
+    applyBrandConfig(nextConfig);
+    window.localStorage.setItem('vaycora-brand-config', JSON.stringify(nextConfig));
   };
 
-  const value = useMemo(() => ({ themeId, setThemeId }), [themeId]);
+  const value = useMemo(
+    () => ({
+      brandConfig,
+      themeId: brandConfig.themeId,
+      setThemeId: (themeId: ThemeId) => saveBrandConfig({ ...brandConfig, themeId }),
+      setPrimaryColorId: (primaryColorId: PrimaryColorId) => saveBrandConfig({ ...brandConfig, primaryColorId }),
+      setAccentColorId: (accentColorId: AccentColorId) => saveBrandConfig({ ...brandConfig, accentColorId }),
+      setBackgroundStyleId: (backgroundStyleId: BackgroundStyleId) => saveBrandConfig({ ...brandConfig, backgroundStyleId }),
+      setSurfaceStyleId: (surfaceStyleId: SurfaceStyleId) => saveBrandConfig({ ...brandConfig, surfaceStyleId }),
+      setTextStyleId: (textStyleId: TextStyleId) => saveBrandConfig({ ...brandConfig, textStyleId }),
+      resetBrandConfig: () => saveBrandConfig(defaultBrandConfig)
+    }),
+    [brandConfig]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
