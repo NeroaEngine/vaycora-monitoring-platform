@@ -6,6 +6,9 @@ export type SurfaceStyleId = 'glass-dark' | 'executive-cream' | 'clean-white' | 
 export type TextStyleId = 'luxury-warm' | 'standard-light' | 'enterprise-dark';
 
 export type BrandConfig = {
+  brandName: string;
+  productName: string;
+  logoDataUrl: string | null;
   themeId: ThemeId;
   primaryColorId: PrimaryColorId;
   accentColorId: AccentColorId;
@@ -97,6 +100,9 @@ export const textStyleOptions: Record<TextStyleId, { name: string; text: string;
 export const defaultThemeId: ThemeId = 'vaycora-classic';
 
 export const defaultBrandConfig: BrandConfig = {
+  brandName: 'Vaycora',
+  productName: 'Asset Operations',
+  logoDataUrl: null,
   themeId: 'vaycora-classic',
   primaryColorId: 'vaycora-deep-green',
   accentColorId: 'vaycora-orange',
