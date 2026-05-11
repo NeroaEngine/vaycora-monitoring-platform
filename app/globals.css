@@ -264,6 +264,29 @@ tbody tr:hover td { background: rgba(201,164,92,.07); }
 .swatches { display: flex; gap: 7px; margin: 14px 0; }
 .swatch { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); }
 
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.formGrid label { display: grid; gap: 7px; color: var(--color-muted); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.formGrid select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--color-surface-2) 88%, transparent);
+  color: var(--color-text);
+  outline: none;
+}
+.formGrid select:focus { border-color: var(--color-gold); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 22%, transparent); }
+.brandPreview {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  background: var(--color-soft);
+}
+
 .loginPage { min-height: 100vh; display: grid; place-items: center; padding: 28px; }
 .loginCard { width: min(1120px, 100%); display: grid; grid-template-columns: 1.1fr .9fr; overflow: hidden; border-radius: 42px; background: color-mix(in srgb, var(--color-surface) 92%, transparent); border: 1px solid var(--color-border); box-shadow: var(--shadow-card); }
 .loginHero { background: linear-gradient(145deg, var(--color-primary), var(--color-primary-deep)); color: #fff8ea; padding: 52px; }
@@ -287,4 +310,5 @@ tbody tr:hover td { background: rgba(201,164,92,.07); }
   .shellHeader { padding: 16px; }
   .navItem { width: 100%; text-align: center; }
   .heroPanel { border-radius: 30px; padding: 26px; }
+  .formGrid { grid-template-columns: 1fr; }
 }
