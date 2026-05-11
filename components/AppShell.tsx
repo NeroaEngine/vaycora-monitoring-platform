@@ -11,11 +11,12 @@ const navItems = [
 export function AppShell({ children, active = 'Dashboard' }: { children: React.ReactNode; active?: string }) {
   return (
     <div className="appShell">
-      <aside className="sidebar">
+      <header className="shellHeader">
         <Link href="/dashboard" className="brandMark">
           <span className="brandIcon">VM</span>
-          <span>
-            Vaycora<br />Monitoring
+          <span className="brandText">
+            <small>Vaycora</small>
+            <strong>Asset Operations</strong>
           </span>
         </Link>
 
@@ -27,11 +28,15 @@ export function AppShell({ children, active = 'Dashboard' }: { children: React.R
           ))}
         </nav>
 
-        <div className="placeholderTag">
-          Architecture mode: placeholder rooms are built first, then each room gets hardened as the workflow is wired.
+        <div className="shellActions">
+          <span className="pill">Architecture Mode</span>
+          <Link href="/admin/branding" className="btn secondary">Themes</Link>
         </div>
-      </aside>
-      <main className="main">{children}</main>
+      </header>
+
+      <main className="main">
+        <div className="pageFrame">{children}</div>
+      </main>
     </div>
   );
 }
