@@ -16,6 +16,9 @@ import {
 type ThemeContextValue = {
   brandConfig: BrandConfig;
   themeId: ThemeId;
+  setBrandName: (brandName: string) => void;
+  setProductName: (productName: string) => void;
+  setLogoDataUrl: (logoDataUrl: string | null) => void;
   setThemeId: (themeId: ThemeId) => void;
   setPrimaryColorId: (primaryColorId: PrimaryColorId) => void;
   setAccentColorId: (accentColorId: AccentColorId) => void;
@@ -26,6 +29,10 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+function normalizeBrandConfig(config: Partial<BrandConfig>): BrandConfig {
+  return { ...defaultBrandConfig, ...config };
+}
 
 function applyBrandConfig(config: BrandConfig) {
   document.documentElement.dataset.theme = config.themeId;
@@ -42,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = window.localStorage.getItem('vaycora-brand-config');
     if (stored) {
       try {
-        const parsed = JSON.parse(stored) as BrandConfig;
+        const parsed = normalizeBrandConfig(JSON.parse(stored) as Partial<BrandConfig>);
         setBrandConfigState(parsed);
         applyBrandConfig(parsed);
         return;
@@ -63,6 +70,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () => ({
       brandConfig,
       themeId: brandConfig.themeId,
+      setBrandName: (brandName: string) => saveBrandConfig({ ...brandConfig, brandName }),
+      setProductName: (productName: string) => saveBrandConfig({ ...brandConfig, productName }),
+      setLogoDataUrl: (logoDataUrl: string | null) => saveBrandConfig({ ...brandConfig, logoDataUrl }),
       setThemeId: (themeId: ThemeId) => saveBrandConfig({ ...brandConfig, themeId }),
       setPrimaryColorId: (primaryColorId: PrimaryColorId) => saveBrandConfig({ ...brandConfig, primaryColorId }),
       setAccentColorId: (accentColorId: AccentColorId) => saveBrandConfig({ ...brandConfig, accentColorId }),
