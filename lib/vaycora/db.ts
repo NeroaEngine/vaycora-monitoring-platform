@@ -2,17 +2,21 @@ import { Pool } from "pg";
 
 let pool: Pool | undefined;
 
+function shouldUseSsl(connectionString: string) {
+  return !connectionString.includes("localhost") && !connectionString.includes("127.0.0.1");
+}
+
 export function getPool() {
-  if (!process.env.DATABASE_URL) {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
     throw new Error("DATABASE_URL is not configured.");
   }
 
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL.includes("sslmode=require")
-        ? undefined
-        : { rejectUnauthorized: false },
+      connectionString,
+      ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : false,
     });
   }
 
