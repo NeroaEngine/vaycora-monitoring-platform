@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getVaycoraDashboardData } from "@/lib/vaycora/repository";
 import type { Asset } from "@/lib/vaycora/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatAssetType(type: string) {
   return type.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
@@ -73,6 +76,10 @@ function RentalReadinessCard({ asset }: { asset: Asset }) {
   const hoursUntilReturn = metadataNumber(asset, "hours_until_return");
   const customer = metadataString(asset, "rental_customer");
   const alerts = metadataStringArray(asset, "alerts_to_send");
+  const geofenceName = metadataString(asset, "geofence_name");
+  const geofenceStatus = metadataString(asset, "geofence_status");
+  const distanceOutside = metadataNumber(asset, "distance_outside_miles");
+  const geofenceMessage = metadataString(asset, "geofence_message");
 
   return (
     <div className="card" style={{ display: "grid", gap: 18, borderColor: "rgba(249,115,22,.42)", background: "linear-gradient(135deg, rgba(249,115,22,.12), rgba(255,255,255,.03))" }}>
@@ -84,6 +91,14 @@ function RentalReadinessCard({ asset }: { asset: Asset }) {
         </div>
         <span className={score && score >= 80 ? "pill good" : "pill warn"}>{score ?? 0}% ready</span>
       </div>
+
+      {geofenceStatus === "violation" ? (
+        <div className="placeholderTag" style={{ borderColor: "rgba(249,115,22,.58)", background: "rgba(249,115,22,.11)" }}>
+          <strong>Geofence Violation</strong><br />
+          <span>{geofenceName ?? "Approved rental zone"}</span><br />
+          <span className="muted">{distanceOutside ?? 0} miles outside · {geofenceMessage ?? "Customer has left the approved rental area."}</span>
+        </div>
+      ) : null}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
         <WorkMetric label={`Fuel / req ${requiredFuel ?? "—"}%`} value={fuel} />
@@ -185,10 +200,7 @@ export default async function VaycoraPage() {
   const activeDevices = devices.filter((device) => device.status === "active").length;
   const serviceDueAssets = assets.filter((asset) => asset.status === "service_due" || asset.status === "alert").length;
   const tenant = tenants[0] ?? { name: "Vaycora", slug: "vaycora", status: "trial", enabledPortals: [] };
-  const avgFuel = assets.map((asset) => metadataNumber(asset, "fuel_level")).filter((value): value is number => typeof value === "number");
-  const avgBattery = assets.map((asset) => asset.internalBatteryLevel ?? metadataNumber(asset, "asset_battery")).filter((value): value is number => typeof value === "number");
   const rentalAssets = assets.filter((asset) => metadataBoolean(asset, "rental_mode"));
-  const average = (values: number[]) => values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
 
   return (
     <main className="pageFrame" style={{ padding: "28px 18px 46px" }}>
