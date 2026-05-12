@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPayloadDetailData } from "@/lib/vaycora/repository";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatTime(value?: string | null) {
   if (!value) return "Never";
   return new Intl.DateTimeFormat("en", {
