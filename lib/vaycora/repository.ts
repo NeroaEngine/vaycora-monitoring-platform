@@ -2,12 +2,36 @@ import { assets as mockAssets, devices as mockDevices, events as mockEvents, raw
 import type { Asset, Device, RawPayload, Tenant, VaycoraEvent } from "./types";
 import { query, queryOne } from "./db";
 
+export type BrandSettings = {
+  tenantId: string;
+  companyName: string;
+  shortName: string;
+  portalType: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundMode: string;
+  dashboardStyle: string;
+  logoUrl?: string | null;
+};
+
 type TenantRow = {
   id: string;
   name: string;
   slug: string;
   status: Tenant["status"];
   enabled_portals: Tenant["enabledPortals"];
+};
+
+type BrandSettingsRow = {
+  tenant_id: string;
+  company_name: string;
+  short_name: string;
+  portal_type: string;
+  primary_color: string;
+  accent_color: string;
+  background_mode: string;
+  dashboard_style: string;
+  logo_url: string | null;
 };
 
 type DeviceRow = {
@@ -98,6 +122,20 @@ function toTenant(row: TenantRow): Tenant {
   return { id: row.id, name: row.name, slug: row.slug, status: row.status, enabledPortals: row.enabled_portals };
 }
 
+function toBrandSettings(row: BrandSettingsRow): BrandSettings {
+  return {
+    tenantId: row.tenant_id,
+    companyName: row.company_name,
+    shortName: row.short_name,
+    portalType: row.portal_type,
+    primaryColor: row.primary_color,
+    accentColor: row.accent_color,
+    backgroundMode: row.background_mode,
+    dashboardStyle: row.dashboard_style,
+    logoUrl: row.logo_url,
+  };
+}
+
 function toDevice(row: DeviceRow): Device {
   return {
     id: row.id,
@@ -169,14 +207,60 @@ function toPayload(row: PayloadRow): RawPayload {
   };
 }
 
+export async function getBrandSettings(tenantId = "tenant_demo") {
+  const row = await queryOne<BrandSettingsRow>("select * from brand_settings where tenant_id = $1", [tenantId]);
+  return row ? toBrandSettings(row) : {
+    tenantId,
+    companyName: "Vaycora Demo Operations",
+    shortName: "Vaycora",
+    portalType: "rental",
+    primaryColor: "#123c2b",
+    accentColor: "#e96f12",
+    backgroundMode: "dark",
+    dashboardStyle: "operations",
+    logoUrl: null,
+  };
+}
+
+export async function saveBrandSettings(settings: BrandSettings) {
+  const row = await queryOne<BrandSettingsRow>(`
+    insert into brand_settings (tenant_id, company_name, short_name, portal_type, primary_color, accent_color, background_mode, dashboard_style, logo_url, updated_at)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+    on conflict (tenant_id) do update set
+      company_name = excluded.company_name,
+      short_name = excluded.short_name,
+      portal_type = excluded.portal_type,
+      primary_color = excluded.primary_color,
+      accent_color = excluded.accent_color,
+      background_mode = excluded.background_mode,
+      dashboard_style = excluded.dashboard_style,
+      logo_url = excluded.logo_url,
+      updated_at = now()
+    returning *
+  `, [
+    settings.tenantId,
+    settings.companyName,
+    settings.shortName,
+    settings.portalType,
+    settings.primaryColor,
+    settings.accentColor,
+    settings.backgroundMode,
+    settings.dashboardStyle,
+    settings.logoUrl ?? null,
+  ]);
+
+  return row ? toBrandSettings(row) : settings;
+}
+
 export async function getVaycoraDashboardData() {
   try {
-    const [tenantRows, assetRows, deviceRows, eventRows, payloadRows] = await Promise.all([
+    const [tenantRows, assetRows, deviceRows, eventRows, payloadRows, brandSettings] = await Promise.all([
       query<TenantRow>("select id, name, slug, status, enabled_portals from tenants order by created_at asc limit 1"),
       query<AssetRow>("select * from assets order by updated_at desc, created_at desc limit 50"),
       query<DeviceRow>("select * from devices order by updated_at desc, created_at desc limit 50"),
       query<EventRow>("select * from events order by event_time desc, created_at desc limit 25"),
       query<PayloadRow>("select * from device_payloads order by received_at desc limit 25"),
+      getBrandSettings(),
     ]);
 
     return {
@@ -186,6 +270,7 @@ export async function getVaycoraDashboardData() {
       devices: deviceRows.map(toDevice),
       events: eventRows.map(toEvent),
       rawPayloads: payloadRows.map(toPayload),
+      brandSettings,
     };
   } catch {
     return {
@@ -195,6 +280,17 @@ export async function getVaycoraDashboardData() {
       devices: mockDevices,
       events: mockEvents,
       rawPayloads: mockPayloads,
+      brandSettings: {
+        tenantId: "tenant_demo",
+        companyName: "Vaycora Demo Operations",
+        shortName: "Vaycora",
+        portalType: "rental",
+        primaryColor: "#123c2b",
+        accentColor: "#e96f12",
+        backgroundMode: "dark",
+        dashboardStyle: "operations",
+        logoUrl: null,
+      },
     };
   }
 }
