@@ -2,10 +2,15 @@ import Link from "next/link";
 
 const navItems = [
   ["Workboard", "/vaycora"],
-  ["Rental Alerts", "/vaycora/rentals/alerts"],
-  ["Payload Admin", "/vaycora/admin/payloads"],
-  ["Brand Settings", "/vaycora/settings/brand"],
-  ["DB Check", "/api/vaycora/db-check"],
+  ["Rentals", "/vaycora/rentals"],
+  ["Fleet", "/vaycora/fleet"],
+  ["Assets", "/vaycora/assets"],
+  ["Sanitation", "/vaycora/sanitation"],
+  ["Manufacturing", "/vaycora/manufacturing"],
+  ["Video", "/vaycora/video"],
+  ["SunTech Parser", "/vaycora/integrations/suntech"],
+  ["Brand", "/vaycora/settings/brand"],
+  ["Admin", "/vaycora/admin/payloads"],
 ];
 
 export default function VaycoraLayout({ children }: { children: React.ReactNode }) {
@@ -29,7 +34,7 @@ export default function VaycoraLayout({ children }: { children: React.ReactNode 
         </nav>
 
         <div className="shellActions">
-          <span className="pill good">Live</span>
+          <Link href="/api/vaycora/db-check" className="pill good">Live</Link>
         </div>
       </header>
       {children}
