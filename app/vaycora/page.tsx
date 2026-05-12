@@ -15,11 +15,110 @@ function getDeviceForAsset(asset: Asset, devices: Awaited<ReturnType<typeof getV
   return devices.find((device) => device.id === asset.assignedDeviceId);
 }
 
+function metadataNumber(asset: Asset, key: string) {
+  const value = asset.metadata?.[key];
+  return typeof value === "number" ? value : undefined;
+}
+
+function metadataString(asset: Asset, key: string) {
+  const value = asset.metadata?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function metricValue(asset: Asset, key: string) {
+  const value = metadataNumber(asset, key);
+  return typeof value === "number" ? `${Math.round(value)}%` : "—";
+}
+
+function barStyle(value?: number) {
+  const width = Math.max(0, Math.min(100, value ?? 0));
+  return { width: `${width}%` };
+}
+
+function statusClass(status: string) {
+  if (["active", "running", "online", "clear"].includes(status)) return "pill good";
+  if (["alert", "service_due", "stopped", "offline"].includes(status)) return "pill warn";
+  return "pill";
+}
+
+function WorkMetric({ label, value, suffix = "%" }: { label: string; value?: number; suffix?: string }) {
+  return (
+    <div style={{ display: "grid", gap: 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span className="muted">{label}</span>
+        <strong>{typeof value === "number" ? `${Math.round(value)}${suffix}` : "—"}</strong>
+      </div>
+      <div style={{ height: 8, borderRadius: 999, background: "rgba(255,255,255,.09)", overflow: "hidden", border: "1px solid var(--color-border)" }}>
+        <div style={{ ...barStyle(value), height: "100%", borderRadius: 999, background: "linear-gradient(90deg, var(--color-gold), #f97316)" }} />
+      </div>
+    </div>
+  );
+}
+
+function WorkboardCard({ asset, device }: { asset: Asset; device?: ReturnType<typeof getDeviceForAsset> }) {
+  const fuel = metadataNumber(asset, "fuel_level");
+  const propane = metadataNumber(asset, "propane_level");
+  const battery = asset.internalBatteryLevel ?? metadataNumber(asset, "asset_battery");
+  const fill = metadataNumber(asset, "fill_level");
+  const freshWater = metadataNumber(asset, "fresh_water");
+  const oilLife = metadataNumber(asset, "oil_life");
+  const driverScore = metadataNumber(asset, "driver_score");
+  const oee = metadataNumber(asset, "oee");
+  const runtime = metadataNumber(asset, "runtime_hours");
+  const load = metadataNumber(asset, "load_percent");
+  const production = metadataNumber(asset, "production_count");
+  const target = metadataNumber(asset, "target_count");
+  const productionPct = production && target ? (production / target) * 100 : undefined;
+  const machineState = metadataString(asset, "machine_state");
+  const powerState = metadataString(asset, "power_state");
+  const cameraStatus = metadataString(asset, "camera_status");
+  const faultCode = metadataString(asset, "fault_code");
+
+  const mainStatus = machineState ?? powerState ?? cameraStatus ?? asset.status;
+
+  return (
+    <Link href={`/vaycora/assets/${asset.id}`} className="card" style={{ textDecoration: "none", color: "inherit", display: "grid", gap: 18 }}>
+      <div className="topbar">
+        <div>
+          <p className="kicker">{formatAssetType(asset.assetType)}</p>
+          <h3 style={{ fontSize: 24, margin: "4px 0 0" }}>{asset.name}</h3>
+          <p className="muted">{asset.displayIdentifier} · {device?.model ?? "No device"}</p>
+        </div>
+        <span className={statusClass(String(mainStatus))}>{String(mainStatus).replaceAll("_", " ")}</span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 14 }}>
+        {typeof fuel === "number" ? <WorkMetric label="Fuel" value={fuel} /> : null}
+        {typeof propane === "number" ? <WorkMetric label="Propane" value={propane} /> : null}
+        {typeof battery === "number" ? <WorkMetric label="Battery" value={battery} /> : null}
+        {typeof fill === "number" ? <WorkMetric label="Fill Level" value={fill} /> : null}
+        {typeof freshWater === "number" ? <WorkMetric label="Fresh Water" value={freshWater} /> : null}
+        {typeof oilLife === "number" ? <WorkMetric label="Oil Life" value={oilLife} /> : null}
+        {typeof driverScore === "number" ? <WorkMetric label="Driver Score" value={driverScore} /> : null}
+        {typeof oee === "number" ? <WorkMetric label="OEE" value={oee} /> : null}
+        {typeof load === "number" ? <WorkMetric label="Load" value={load} /> : null}
+        {typeof productionPct === "number" ? <WorkMetric label="Production" value={productionPct} /> : null}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(115px, 1fr))", gap: 10 }}>
+        {typeof asset.speedMph === "number" ? <div className="placeholderTag"><strong>{Math.round(asset.speedMph)}</strong><br /><span className="muted">mph</span></div> : null}
+        {typeof asset.batteryVoltage === "number" ? <div className="placeholderTag"><strong>{asset.batteryVoltage}V</strong><br /><span className="muted">Vehicle battery</span></div> : null}
+        {typeof runtime === "number" ? <div className="placeholderTag"><strong>{runtime}</strong><br /><span className="muted">runtime hours</span></div> : null}
+        {typeof production === "number" ? <div className="placeholderTag"><strong>{production}</strong><br /><span className="muted">units today</span></div> : null}
+        <div className="placeholderTag"><strong>{asset.ignitionStatus ? "On" : asset.ignitionStatus === false ? "Off" : asset.externalPowerStatus ? "Powered" : "—"}</strong><br /><span className="muted">power/ignition</span></div>
+      </div>
+
+      {faultCode ? <div className="placeholderTag" style={{ borderColor: "rgba(249,115,22,.45)" }}><strong>Fault:</strong> {faultCode}</div> : null}
+    </Link>
+  );
+}
+
 const portalCards = [
-  ["Fleet", "OBD vehicles, ignition, trips, speed, VIN intelligence, video telematics, and vehicle health.", "Enabled"],
-  ["Assets", "Trailers, containers, equipment, generators, solar trackers, and battery assets.", "Enabled"],
-  ["Sanitation", "Porta-potty fill, tip, movement, site assignment, and service-needed workflows.", "Enabled"],
-  ["Manufacturing", "Machine start/stop, runtime, downtime, fault state, and production-event visibility.", "Planned"],
+  ["Fleet", "OBD, fuel, ignition, trips, VIN intelligence, video telematics, and vehicle health.", "Enabled"],
+  ["Assets", "Trailers, containers, equipment, generators, tanks, and battery assets.", "Enabled"],
+  ["Sanitation", "Fill, tip, water, site assignment, and service-needed workflows.", "Enabled"],
+  ["Manufacturing", "Machine start/stop, runtime, downtime, fault state, OEE, and production counts.", "Planned"],
+  ["Video", "ST9730 live view, event clips, ADAS, DMS, and driver score workflows.", "Planned"],
   ["Admin", "Device provisioning, payload debugging, tenants, and integration operations.", "Enabled"],
 ];
 
@@ -28,28 +127,31 @@ export default async function VaycoraPage() {
   const activeDevices = devices.filter((device) => device.status === "active").length;
   const serviceDueAssets = assets.filter((asset) => asset.status === "service_due" || asset.status === "alert").length;
   const tenant = tenants[0] ?? { name: "Vaycora", slug: "vaycora", status: "trial", enabledPortals: [] };
+  const avgFuel = assets.map((asset) => metadataNumber(asset, "fuel_level")).filter((value): value is number => typeof value === "number");
+  const avgBattery = assets.map((asset) => asset.internalBatteryLevel ?? metadataNumber(asset, "asset_battery")).filter((value): value is number => typeof value === "number");
+  const average = (values: number[]) => values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
 
   return (
     <main className="pageFrame" style={{ padding: "28px 18px 46px" }}>
       <section className="heroPanel">
         <div>
-          <p className="kicker">Vaycora Core v0.1</p>
-          <h1 className="h1">Tracking core command center.</h1>
-          <p className="muted" style={{ maxWidth: 760 }}>
-            One SunTech ingestion core for vehicles, assets, sensors, porta-potties, RVs, containers, video telematics, manufacturing uptime, and future livestock workflows.
+          <p className="kicker">Vaycora Workboard</p>
+          <h1 className="h1">Operations at a glance.</h1>
+          <p className="muted" style={{ maxWidth: 780 }}>
+            Clean operational cards for fuel, propane, battery, fill level, machine status, camera status, power, service needs, and live SunTech data.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 24 }}>
             <span className="pill accent">SunTech ingestion live</span>
             <span className="pill">Data source: {source}</span>
-            <span className="pill">Multi-portal architecture</span>
-            <Link className="pill good" href="/vaycora/admin/payloads">Open Payload Admin</Link>
+            <span className="pill">Tenant: {tenant.name}</span>
+            <Link className="pill good" href="/vaycora/admin/payloads">Admin Payloads</Link>
           </div>
         </div>
         <div className="heroMetricGrid">
-          <div className="heroMetric"><strong>{assets.length}</strong><span>Tracked assets</span></div>
+          <div className="heroMetric"><strong>{assets.length}</strong><span>Assets</span></div>
           <div className="heroMetric"><strong>{activeDevices}</strong><span>Active devices</span></div>
-          <div className="heroMetric"><strong>{serviceDueAssets}</strong><span>Needs attention</span></div>
-          <div className="heroMetric"><strong>{rawPayloads.length}</strong><span>Recent payloads</span></div>
+          <div className="heroMetric"><strong>{average(avgFuel)}%</strong><span>Avg fuel</span></div>
+          <div className="heroMetric"><strong>{average(avgBattery)}%</strong><span>Avg battery</span></div>
         </div>
       </section>
 
@@ -57,11 +159,11 @@ export default async function VaycoraPage() {
         <div className="card">
           <div className="topbar">
             <div>
-              <p className="kicker">Live Map Placeholder</p>
-              <h2 className="cardTitle">Current asset positions</h2>
-              <p className="muted">This is now reading asset/device/event data from Postgres when the database is available.</p>
+              <p className="kicker">Command Map</p>
+              <h2 className="cardTitle">Live asset positions</h2>
+              <p className="muted">Visual map placeholder with operational pins. Mapbox replaces this next.</p>
             </div>
-            <Link className="btn secondary" href="/api/vaycora/ingest/suntech">Ingestion Health</Link>
+            <span className={serviceDueAssets > 0 ? "pill warn" : "pill good"}>{serviceDueAssets} need attention</span>
           </div>
 
           <div style={{ position: "relative", minHeight: 430, marginTop: 22, borderRadius: 28, overflow: "hidden", border: "1px solid var(--color-border)", background: "linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.02))" }}>
@@ -75,11 +177,12 @@ export default async function VaycoraPage() {
                 { left: "68%", top: "58%" },
                 { left: "46%", top: "66%" },
                 { left: "72%", top: "30%" },
+                { left: "30%", top: "28%" },
               ];
               const position = positions[index % positions.length];
               return (
                 <Link key={asset.id} href={`/vaycora/assets/${asset.id}`} style={{ position: "absolute", ...position, transform: "translate(-50%, -50%)" }}>
-                  <span className="brandIcon" style={{ width: 54, height: 54, fontSize: 18 }}>{asset.assetType === "vehicle" ? "V" : asset.assetType === "porta_potty" ? "P" : asset.assetType === "container" ? "C" : "A"}</span>
+                  <span className="brandIcon" style={{ width: 54, height: 54, fontSize: 18 }}>{asset.assetType === "vehicle" ? "V" : asset.assetType === "porta_potty" ? "P" : asset.assetType === "container" ? "C" : asset.assetType === "generator" ? "G" : "M"}</span>
                   <span className="pill" style={{ position: "absolute", left: "50%", top: 62, transform: "translateX(-50%)", whiteSpace: "nowrap" }}>{asset.displayIdentifier}</span>
                 </Link>
               );
@@ -89,11 +192,9 @@ export default async function VaycoraPage() {
 
         <aside className="grid">
           <div className="card">
-            <p className="kicker">Tenant</p>
-            <h2 className="cardTitle">{tenant.name}</h2>
-            <p className="muted">{tenant.slug} · {tenant.status}</p>
-            <div className="luxuryDivider" style={{ margin: "18px 0" }} />
-            <div className="statusRail">
+            <p className="kicker">Portal Modules</p>
+            <h2 className="cardTitle">One core, many lanes</h2>
+            <div className="statusRail" style={{ marginTop: 18 }}>
               {portalCards.map(([title, body, status]) => (
                 <div className="statusItem" key={title}>
                   <span><strong>{title}</strong><br /><small className="muted">{body}</small></span>
@@ -105,36 +206,20 @@ export default async function VaycoraPage() {
         </aside>
       </section>
 
-      <section className="grid two">
-        <div className="card">
-          <div className="topbar">
-            <div>
-              <p className="kicker">Asset Registry</p>
-              <h2 className="cardTitle">Vehicles, containers, sanitation, machines, and field assets</h2>
-            </div>
-            <span className="pill accent">{rawPayloads.length} recent payloads</span>
+      <section className="card">
+        <div className="topbar">
+          <div>
+            <p className="kicker">Operational Workboard</p>
+            <h2 className="cardTitle">Fuel, propane, fill, runtime, cameras, and service status</h2>
           </div>
-          <div className="tableWrap" style={{ marginTop: 16 }}>
-            <table>
-              <thead><tr><th>Asset</th><th>Type</th><th>Device</th><th>Status</th><th>Last Seen</th></tr></thead>
-              <tbody>
-                {assets.map((asset) => {
-                  const device = getDeviceForAsset(asset, devices);
-                  return (
-                    <tr key={asset.id}>
-                      <td><Link href={`/vaycora/assets/${asset.id}`}><strong>{asset.name}</strong><br /><span className="muted">{asset.displayIdentifier}</span></Link></td>
-                      <td>{formatAssetType(asset.assetType)}</td>
-                      <td><strong>{device?.model ?? "Unassigned"}</strong><br /><span className="muted">{device?.imei}</span></td>
-                      <td><span className={asset.status === "service_due" ? "pill warn" : "pill good"}>{asset.status}</span></td>
-                      <td>{formatTime(asset.lastSeenAt)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <span className="pill accent">{assets.length} cards</span>
         </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 18, marginTop: 18 }}>
+          {assets.map((asset) => <WorkboardCard key={asset.id} asset={asset} device={getDeviceForAsset(asset, devices)} />)}
+        </div>
+      </section>
 
+      <section className="grid two">
         <div className="card">
           <p className="kicker">Latest Events</p>
           <div className="statusRail" style={{ marginTop: 16 }}>
@@ -150,35 +235,20 @@ export default async function VaycoraPage() {
             {events.length === 0 ? <p className="muted">No events yet. Send a test payload to see events here.</p> : null}
           </div>
         </div>
-      </section>
 
-      <section className="card">
-        <div className="topbar">
-          <div>
-            <p className="kicker">Payload Debugger</p>
-            <h2 className="cardTitle">Recent SunTech payloads</h2>
+        <div className="card">
+          <div className="topbar">
+            <div>
+              <p className="kicker">Payload Debugger</p>
+              <h2 className="cardTitle">Admin-only technical view</h2>
+              <p className="muted">Customer workboards stay clean. Raw payloads and protocol debugging live here.</p>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
             <Link className="btn secondary" href="/vaycora/admin/payloads">Open Payload Admin</Link>
             <Link className="btn secondary" href="/api/vaycora/db-check">Database Check</Link>
+            <span className="pill accent">{rawPayloads.length} recent payloads</span>
           </div>
-        </div>
-        <div className="tableWrap" style={{ marginTop: 16 }}>
-          <table>
-            <thead><tr><th>Received</th><th>Device</th><th>Status</th><th>Format</th><th>Payload ID</th></tr></thead>
-            <tbody>
-              {rawPayloads.map((payload) => (
-                <tr key={payload.id}>
-                  <td>{formatTime(payload.receivedAt)}</td>
-                  <td><strong>{payload.deviceIdentifier ?? "Unknown"}</strong><br /><span className="muted">{payload.deviceId ?? "unmatched"}</span></td>
-                  <td><span className={payload.parseStatus === "parsed" ? "pill good" : "pill bad"}>{payload.parseStatus}</span></td>
-                  <td>{payload.payloadFormat}</td>
-                  <td><Link className="pill" href={`/vaycora/admin/payloads/${payload.id}`}>{payload.id}</Link></td>
-                </tr>
-              ))}
-              {rawPayloads.length === 0 ? <tr><td colSpan={5}>No payloads yet.</td></tr> : null}
-            </tbody>
-          </table>
         </div>
       </section>
     </main>
